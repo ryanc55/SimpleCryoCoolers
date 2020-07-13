@@ -10,6 +10,7 @@ namespace CryoCooler
     {
         static double lowestTankTemperature;
         static ModuleFuelTanks tankModule;
+        static ModuleColorChanger lightModule;
         static int noCatchup = 0;
         static FuelTankList tankList = new FuelTankList();
         readonly double maxCoolerPower = 5;  //kW
@@ -23,13 +24,15 @@ namespace CryoCooler
         public double heatFlux = 0;
         [KSPField(isPersistant = true, guiActive = false)]
         public double lastTankTemperature = 0;
+        [KSPField]
+        public string animationName = "none";
         public override void OnStart(StartState state)
         {
             base.OnStart(state);
             if (part.parent != null)
             {
                 Debug.Log("[SCC] Starting CryoCooler " + Time.realtimeSinceStartup);
-                tankModule = base.part.parent.FindModuleImplementing<RealFuels.Tanks.ModuleFuelTanks>();
+                tankModule = part.parent.FindModuleImplementing<RealFuels.Tanks.ModuleFuelTanks>();
                 if (tankModule != null)
                 {
                     tankList = GetInstanceField(tankModule, "tankList") as FuelTankList;
@@ -39,19 +42,16 @@ namespace CryoCooler
                         if (isPoweredOn && lastTankTemperature > 0)
                         {
                             noCatchup = 10;
-
-                            //part.parent.skinTemperature = lowestTankTemperature;
                         }
                     }
                 }
                 else
                 {
-                    isPoweredOn = false;
                     Debug.Log("[SCC] Error: Not Attached to RF tank. ");
                 }
             }
-
-            // base.part.SetHighlightColor(Color.yellow);
+            lightModule = part.FindModuleImplementing<ModuleColorChanger>();
+            lightModule.animState = isPoweredOn;
         }
         
 
@@ -61,7 +61,7 @@ namespace CryoCooler
             {
                 if (part.parent.temperature > lowestTankTemperature - .1 && part.temperature < part.maxTemp * .9 && isPoweredOn)
                 {
-
+                    
                     if (part.temperature > part.parent.temperature) //don't work as a generator
                     { 
                         double carnotEfficiency = part.parent.temperature / (part.temperature - part.parent.temperature);
@@ -100,6 +100,7 @@ namespace CryoCooler
         public void CoolingToggle()
         {
             isPoweredOn = !isPoweredOn;
+            lightModule.animState = isPoweredOn;
         }
 
         internal static object GetInstanceField(object instance, string fieldName)
